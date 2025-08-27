@@ -2,6 +2,8 @@
 import { useState, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import { createCard } from '../actions'
+import { UploadButton } from '@uploadthing/react'
+import type { OurFileRouter } from '@/app/api/uploadthing/core'
 
 interface Category {
   id: string
@@ -28,10 +30,17 @@ function SubmitButton() {
 
 export function CreateCardForm({ categories }: Props) {
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null)
+  const [imageUrl, setImageUrl] = useState<string>('')
   const formRef = useRef<HTMLFormElement>(null)
 
   async function handleSubmit(formData: FormData) {
     setMessage(null)
+    
+    // Add the uploaded image URL to the form data
+    if (imageUrl) {
+      formData.set('backgroundUrl', imageUrl)
+    }
+    
     const result = await createCard(null, formData)
     
     if (result.error) {
@@ -39,6 +48,7 @@ export function CreateCardForm({ categories }: Props) {
     } else if (result.success) {
       setMessage({ type: 'success', text: 'Card created successfully!' })
       formRef.current?.reset()
+      setImageUrl('')
     }
   }
 
@@ -102,18 +112,41 @@ export function CreateCardForm({ categories }: Props) {
       </div>
       
       <div className="grid grid-cols-2 gap-3">
-        <input 
-          name="image" 
-          type="file" 
-          accept="image/*" 
-          className="rounded-md border px-3 py-2"
-          title="Upload a background image (optional - will automatically set card to image type)"
-        />
-        <input 
-          name="publishedAt" 
-          type="datetime-local" 
-          className="rounded-md border px-3 py-2" 
-        />
+        <div>
+          <label className="block text-sm font-medium mb-1">Background Image</label>
+          {imageUrl ? (
+            <div className="space-y-2">
+              <img src={imageUrl} alt="Uploaded" className="w-full h-20 object-cover rounded-md border" />
+              <button 
+                type="button"
+                onClick={() => setImageUrl('')}
+                className="text-sm text-red-600 hover:text-red-800"
+              >
+                Remove image
+              </button>
+            </div>
+          ) : (
+            <UploadButton<OurFileRouter>
+              endpoint="imageUploader"
+              onClientUploadComplete={(res) => {
+                if (res?.[0]?.url) {
+                  setImageUrl(res[0].url)
+                }
+              }}
+              onUploadError={(error: Error) => {
+                setMessage({ type: 'error', text: `Upload failed: ${error.message}` })
+              }}
+            />
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Published At</label>
+          <input 
+            name="publishedAt" 
+            type="datetime-local" 
+            className="rounded-md border px-3 py-2 w-full" 
+          />
+        </div>
       </div>
       
       <SubmitButton />

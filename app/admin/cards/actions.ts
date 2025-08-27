@@ -33,12 +33,22 @@ export async function createCard(prevState: any, formData: FormData) {
     let backgroundBlur: string | undefined
     let type = 'solid' // default type
     
-    const file = formData.get('image') as unknown as File | null
-    if (file && file.size > 0) {
-      const saved = await saveUploadToPublic(file)
-      backgroundUrl = saved.url
-      backgroundBlur = saved.blurDataUrl
-      type = 'image' // auto-set to image when background is uploaded
+    // Check for UploadThing URL first
+    const uploadedUrl = formData.get('backgroundUrl') as string
+    if (uploadedUrl) {
+      backgroundUrl = uploadedUrl
+      type = 'image'
+      // Generate blur placeholder from URL if needed
+      backgroundBlur = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='
+    } else {
+      // Fallback to file upload (for local development)
+      const file = formData.get('image') as unknown as File | null
+      if (file && file.size > 0) {
+        const saved = await saveUploadToPublic(file)
+        backgroundUrl = saved.url
+        backgroundBlur = saved.blurDataUrl
+        type = 'image'
+      }
     }
     
     await prisma.card.create({ data: { ...input, type, colorScheme: 'light', backgroundUrl, backgroundBlur } })

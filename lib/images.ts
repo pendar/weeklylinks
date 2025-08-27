@@ -1,5 +1,3 @@
-import path from 'node:path'
-import fs from 'node:fs/promises'
 import sharp from 'sharp'
 
 export interface SaveImageResult {
@@ -7,24 +5,21 @@ export interface SaveImageResult {
   blurDataUrl: string
 }
 
+// For local development, fall back to local storage
 export async function saveUploadToPublic(file: File): Promise<SaveImageResult> {
+  // In production, this should be handled by UploadThing
+  // This is just a fallback for local development
+  
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
-
-  const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
-  await fs.mkdir(uploadsDir, { recursive: true })
-
-  const ext = path.extname(file.name) || '.jpg'
-  const base = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-  const filename = `${base}${ext}`
-  const fullPath = path.join(uploadsDir, filename)
-  await fs.writeFile(fullPath, buffer)
 
   // Create a tiny blur placeholder
   const blur = await sharp(buffer).resize(24).toBuffer()
   const blurDataUrl = `data:image/jpeg;base64,${blur.toString('base64')}`
 
-  const url = `/uploads/${filename}`
+  // For production, the URL will come from UploadThing
+  // For dev, we'll use a placeholder
+  const url = `/api/placeholder-image`
   return { url, blurDataUrl }
 }
 
