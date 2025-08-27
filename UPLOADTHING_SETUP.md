@@ -1,19 +1,19 @@
 # UploadThing Setup for Image Uploads
 
-## Step 1: Get UploadThing API Keys
+## Step 1: Get UploadThing Token
 
 1. Go to https://uploadthing.com
 2. Sign up with GitHub
 3. Create a new app
-4. Copy your API keys
+4. Go to your app's API Keys page
+5. Copy the full token (it's a long base64 string that contains apiKey, appId, and regions)
 
-## Step 2: Add Environment Variables
+## Step 2: Add Environment Variable
 
-Add these to your Vercel environment variables:
+Add this single environment variable to your Vercel:
 
 ```
-UPLOADTHING_TOKEN=sk_live_...
-UPLOADTHING_APP_ID=your_app_id
+UPLOADTHING_TOKEN=eyJhcGlLZXkiOiJza...  (the full base64 token from UploadThing)
 ```
 
 ## Step 3: That's it!
