@@ -3,6 +3,7 @@ import { useState, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import { createCard } from '../actions'
 import { UploadButton } from '@uploadthing/react'
+import type { OurFileRouter } from '@/app/api/uploadthing/core'
 
 interface Category {
   id: string
@@ -125,7 +126,7 @@ export function CreateCardForm({ categories }: Props) {
               </button>
             </div>
           ) : (
-            <UploadButton
+            <UploadButton<OurFileRouter, "imageUploader">
               endpoint="imageUploader"
               onClientUploadComplete={(res) => {
                 if (res?.[0]?.url) {
