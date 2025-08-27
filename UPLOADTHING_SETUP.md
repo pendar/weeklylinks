@@ -12,7 +12,7 @@
 Add these to your Vercel environment variables:
 
 ```
-UPLOADTHING_SECRET=sk_live_...
+UPLOADTHING_TOKEN=sk_live_...
 UPLOADTHING_APP_ID=your_app_id
 ```
 
