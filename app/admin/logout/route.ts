@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function GET() {
+export async function GET(request: Request) {
   cookies().delete('nf_admin')
-  return NextResponse.redirect(new URL('/admin/login', process.env.NEXT_PUBLIC_BASE_URL))
+  const url = new URL('/admin/login', request.url)
+  return NextResponse.redirect(url)
 }
 
 

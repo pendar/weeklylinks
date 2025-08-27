@@ -16,7 +16,6 @@ export default function AdminLoginPage() {
         <input name="password" type="password" placeholder="Password" className="rounded-md border px-3 py-2" required />
         <input name="next" type="hidden" defaultValue="/admin" />
         <button className="rounded-md bg-black px-3 py-2 text-white">Login</button>
-        <p className="text-xs opacity-70">Set env ADMIN_PASSWORD to enable.</p>
       </form>
     </main>
   )
