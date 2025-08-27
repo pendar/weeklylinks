@@ -103,11 +103,11 @@ export function CreateCardForm({ categories }: Props) {
       
       <div className="grid grid-cols-2 gap-3">
         <input 
-          name="image" 
-          type="file" 
-          accept="image/*" 
+          name="backgroundUrl" 
+          type="url" 
+          placeholder="Background Image URL (optional)" 
           className="rounded-md border px-3 py-2"
-          title="Upload a background image (optional - will automatically set card to image type)"
+          title="Enter a URL for background image (will automatically set card to image type)"
         />
         <input 
           name="publishedAt" 
