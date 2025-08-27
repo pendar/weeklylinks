@@ -13,9 +13,16 @@ export async function POST(request: NextRequest) {
     })
     
     if (!token) {
-      console.error('BLOB_READ_WRITE_TOKEN environment variable not found')
+      const debugInfo = {
+        hasToken: !!token,
+        tokenLength: token?.length || 0,
+        allEnvKeys: Object.keys(process.env).filter(key => key.includes('BLOB')),
+        totalEnvKeys: Object.keys(process.env).length
+      }
+      
+      console.error('BLOB_READ_WRITE_TOKEN environment variable not found', debugInfo)
       return NextResponse.json({ 
-        error: 'Blob storage not configured. Please check Vercel dashboard.' 
+        error: 'Blob storage not configured. Debug info: ' + JSON.stringify(debugInfo)
       }, { status: 500 })
     }
 
