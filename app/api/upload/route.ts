@@ -6,6 +6,12 @@ export async function POST(request: NextRequest) {
     // Check if we have the blob token
     const token = process.env.BLOB_READ_WRITE_TOKEN
     
+    console.log('Environment check:', {
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      allEnvKeys: Object.keys(process.env).filter(key => key.includes('BLOB'))
+    })
+    
     if (!token) {
       console.error('BLOB_READ_WRITE_TOKEN environment variable not found')
       return NextResponse.json({ 
