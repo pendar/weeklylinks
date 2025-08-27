@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { deleteCard } from './actions'
-import { CreateCardForm } from './_components/create-card-form'
+import { deleteCard, createCard } from './actions'
+import { CardForm } from './_components/card-form'
 
 export default async function CardsPage() {
   const [categories, cards] = await Promise.all([
@@ -9,8 +9,12 @@ export default async function CardsPage() {
   ])
   return (
     <main className="mx-auto max-w-4xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Cards</h1>
-      <CreateCardForm categories={categories} />
+      <CardForm 
+        categories={categories} 
+        onSubmit={createCard}
+        submitButtonText="Create"
+        title="Create New Card"
+      />
 
       <ul className="grid gap-3">
         {cards.map(c => (
