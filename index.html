@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fomonomo Card Animation</title>
+    <style>
+        :root {
+            --card-height-vh: 70;
+            --card-aspect-ratio: 0.53;
+            --card-height: calc(var(--card-height-vh) * 1vh);
+            --card-width: calc(var(--card-height) * var(--card-aspect-ratio));
+            --border-radius: 20px;
+
+            --spotlight-left-vh: 19;
+            --spotlight-left: calc(var(--spotlight-left-vh) * 1vh);
+
+            --stack-margin-vh: 4;
+            --stack-margin-left: calc(var(--stack-margin-vh) * 1vh);
+
+            --stack-offset-vh: 15;
+            --stack-offset: calc(var(--stack-offset-vh) * 1vh);
+            
+            --animation-duration: 200ms;
+            --animation-timing-function: cubic-bezier(.88,.06,.26,1.13);
+
+            --spotlight-shadow: 0px 594px 166px 0px rgba(0, 0, 0, 0.00), 0px 380px 152px 0px rgba(0, 0, 0, 0.02), 0px 214px 128px 0px rgba(0, 0, 0, 0.08), 0px 95px 95px 0px rgba(0, 0, 0, 0.13), 0px 24px 52px 0px rgba(0, 0, 0, 0.15);
+            --stacked-shadow: 183px 565px 166px 0px rgba(0, 0, 0, 0.00), 117px 361px 152px 0px rgba(0, 0, 0, 0.01), 66px 203px 128px 0px rgba(0, 0, 0, 0.03), 29px 90px 95px 0px rgba(0, 0, 0, 0.08), 7px 23px 52px 0px rgba(0, 0, 0, 0.10);
+        }
+
+        body {
+            margin: 0;
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            color: #111;
+        }
+
+        .main-content {
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .card-container {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        .card {
+            position: absolute;
+            height: var(--card-height);
+            width: var(--card-width);
+            border-radius: var(--border-radius);
+            top: calc((100vh - var(--card-height)) / 2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            font-weight: 500;
+            color: #999;
+            transition: transform var(--animation-duration) var(--animation-timing-function),
+                        opacity var(--animation-duration) ease;
+            will-change: transform, opacity;
+        }
+
+        .card .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card::before,
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: var(--border-radius);
+            background-color: white;
+            border: 1px solid #E5E5E5;
+            transition: opacity var(--animation-duration) var(--animation-timing-function);
+        }
+
+        .card::before {
+            box-shadow: var(--spotlight-shadow);
+            opacity: var(--spotlight-progress, 0);
+        }
+
+        .card::after {
+            box-shadow: var(--stacked-shadow);
+            opacity: calc((1 - var(--spotlight-progress, 0)) * var(--stack-depth-opacity, 1));
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #555;
+            border-radius: 50%;
+            position: absolute;
+            top: calc((100vh - 50px) / 2);
+            left: 0; /* Will be positioned by JS */
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            will-change: transform, opacity;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .footer a {
+            color: #111;
+            text-decoration: none;
+            margin: 0 10px;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: #888;
+        }
+
+        .footer-left, .footer-center, .footer-right {
+            display: flex;
+            gap: 20px;
+        }
+
+    </style>
+</head>
+<body>
+    <main class="main-content">
+        <div class="card-container">
+            <div class="card"><span class="content">Card 1</span></div>
+            <div class="card"><span class="content">Card 2</span></div>
+            <div class="card"><span class="content">Card 3</span></div>
+            <div class="card"><span class="content">Card 4</span></div>
+            <div class="card"><span class="content">Card 5</span></div>
+            <div class="card"><span class="content">Card 6</span></div>
+            <div class="card"><span class="content">Card 7</span></div>
+            <div class="card"><span class="content">Card 8</span></div>
+            <div class="card"><span class="content">Card 9</span></div>
+            <div class="card"><span class="content">Card 10</span></div>
+            <div class="card"><span class="content">Card 11</span></div>
+            <div class="card"><span class="content">Card 12</span></div>
+            <div class="card"><span class="content">Card 13</span></div>
+            <div class="card"><span class="content">Card 14</span></div>
+            <div class="card"><span class="content">Card 15</span></div>
+        </div>
+        <div class="loading-spinner"></div>
+    </main>
+    <footer class="footer">
+        <div class="footer-left">
+            <a href="#">Login</a>
+            <a href="#">Submission</a>
+        </div>
+        <div class="footer-center">
+            <a href="#">Email nowsletter &rarr;</a>
+        </div>
+        <div class="footer-right">
+            <a href="#">J</a>
+            <a href="#">in</a>
+            <a href="#">O</a>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cardContainer = document.querySelector('.card-container');
+            const loadingSpinner = document.querySelector('.loading-spinner');
+            
+            let allCardsData = [];
+            const cardElements = [];
+
+            let scrollProgress = 0;
+            let scrollEndTimer = null;
+            let isSettling = false;
+            let stackOffsets = [];
+            let animationFrameId = null;
+            let isLoading = false;
+
+            const settings = {
+                cardHeightVh: 70,
+                cardAspectRatio: 0.53,
+                spotlightLeftVh: 19,
+                stackMarginVh: 4,
+                stackOffsetVh: 15,
+                settleTimeout: 150,
+                scrollAmountPerCard: 400,
+                settleDuration: 800,
+                virtualizationMargin: 5, // cards to render before/after visible ones
+                loadThreshold: 3, // cards from end to trigger load
+            };
+
+            function generateInitialCards() {
+                for (let i = 0; i < 15; i++) {
+                    allCardsData.push({ id: i + 1, content: `Card ${i + 1}` });
+                }
+            }
+
+            async function fetchMoreCards() {
+                if (isLoading) return;
+                isLoading = true;
+                
+                const lastCardPos = getTargetPositions(allCardsData.length -1)[allCardsData.length - 1];
+                loadingSpinner.style.transform = `translateX(${lastCardPos.translateX + vhToPixels(settings.stackOffsetVh)}px)`;
+                loadingSpinner.style.opacity = '1';
+
+                // Simulate network delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                const currentCount = allCardsData.length;
+                for (let i = 0; i < 20; i++) {
+                    const newId = currentCount + i + 1;
+                    allCardsData.push({ id: newId, content: `Card ${newId}` });
+                }
+                
+                // Regenerate stack offsets to include new cards
+                generateStackOffsets();
+                loadingSpinner.style.opacity = '0';
+                isLoading = false;
+                updateCardStyles();
+            }
+
+            // Set the CSS animation duration from our JS settings
+            document.documentElement.style.setProperty('--animation-duration', `${settings.settleDuration / 1000}s`);
+
+            function vhToPixels(vh) {
+                return (vh / 100) * window.innerHeight;
+            }
+
+            function getCardDimensions() {
+                const height = vhToPixels(settings.cardHeightVh);
+                const width = height * settings.cardAspectRatio;
+                return { height, width };
+            }
+
+            function generateStackOffsets() {
+                const baseStackOffset = vhToPixels(settings.stackOffsetVh);
+                // Ensure stackOffsets array is long enough
+                while(stackOffsets.length < allCardsData.length) {
+                   stackOffsets.push(baseStackOffset * (1 + (Math.random() - 0.5) * 0.2));
+                }
+            }
+
+            function getTargetPositions(targetSpotlightIndex) {
+                const { width } = getCardDimensions();
+                const spotlightLeft = vhToPixels(settings.spotlightLeftVh);
+                const stackMarginLeft = vhToPixels(settings.stackMarginVh);
+                const stackStartLeft = spotlightLeft + width + stackMarginLeft;
+
+                if (stackOffsets.length !== allCardsData.length) {
+                    generateStackOffsets();
+                }
+
+                return allCardsData.map((_, i) => {
+                    const state = {
+                        translateX: 0, rotate: 0, opacity: 1,
+                        spotlightProgress: 0,
+                        stackDepthOpacity: 1,
+                        zIndex: i,
+                        content: allCardsData[i].content,
+                    };
+
+                    if (i < targetSpotlightIndex) { // Gone
+                        state.translateX = -window.innerWidth * 0.75;
+                        state.rotate = -20;
+                        state.opacity = 0;
+                    } else if (i === targetSpotlightIndex) { // Spotlight
+                        state.translateX = spotlightLeft;
+                        state.spotlightProgress = 1;
+                        state.zIndex = allCardsData.length + 1;
+                    } else { // In stack
+                        const stackIndex = i - targetSpotlightIndex - 1;
+                        const totalCardsInStack = allCardsData.length - (targetSpotlightIndex + 1);
+                        const stackProgress = totalCardsInStack > 1 ? stackIndex / (totalCardsInStack - 1) : 0;
+                        
+                        const maxStackOpacity = 1.0;
+                        const minStackOpacity = 0.3;
+                        state.stackDepthOpacity = lerp(maxStackOpacity, minStackOpacity, stackProgress);
+
+                        let leftPos = stackStartLeft;
+                        for (let j = 0; j < stackIndex; j++) {
+                            const offsetIndex = targetSpotlightIndex + 1 + j;
+                            if(stackOffsets[offsetIndex]) {
+                                leftPos += stackOffsets[offsetIndex];
+                            }
+                        }
+                        state.translateX = leftPos;
+                    }
+                    return state;
+                });
+            }
+
+            function lerp(start, end, amount) {
+                return (1 - amount) * start + amount * end;
+            }
+
+            function updateCardStyles() {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(() => {
+                    const totalProgress = scrollProgress / settings.scrollAmountPerCard;
+                    const currentIndex = Math.floor(totalProgress);
+                    const transitionProgress = totalProgress - currentIndex;
+
+                    const allPositions = getTargetPositions(currentIndex);
+                    const allEndPositions = getTargetPositions(currentIndex + 1);
+
+                    // --- VIRTUALIZATION LOGIC ---
+                    const startIndex = Math.max(0, currentIndex - settings.virtualizationMargin);
+                    const endIndex = Math.min(allCardsData.length - 1, currentIndex + 1 + settings.virtualizationMargin);
+
+                    const visibleData = [];
+                    for(let i = startIndex; i <= endIndex; i++) {
+                       const start = allPositions[i];
+                       const end = allEndPositions[i];
+                       if (!start || !end) continue;
+                       
+                       visibleData.push({
+                           data: allCardsData[i],
+                           translateX: lerp(start.translateX, end.translateX, transitionProgress),
+                           rotate: lerp(start.rotate, end.rotate, transitionProgress),
+                           opacity: lerp(start.opacity, end.opacity, transitionProgress),
+                           spotlightProgress: lerp(start.spotlightProgress, end.spotlightProgress, transitionProgress),
+                           stackDepthOpacity: lerp(start.stackDepthOpacity, end.stackDepthOpacity, transitionProgress),
+                           zIndex: (i === currentIndex && transitionProgress > 0) || (i === currentIndex + 1 && transitionProgress > 0.5)
+                               ? allCardsData.length + 1
+                               : i,
+                       });
+                    }
+
+                    // Sync DOM elements with virtualized data
+                    visibleData.forEach((item, i) => {
+                        let cardEl = cardElements[i];
+                        if (!cardEl) {
+                            cardEl = document.createElement('div');
+                            cardEl.className = 'card';
+                            cardEl.innerHTML = '<span class="content"></span>';
+                            cardContainer.appendChild(cardEl);
+                            cardElements[i] = cardEl;
+                        }
+
+                        cardEl.style.display = '';
+                        cardEl.querySelector('.content').textContent = item.data.content;
+                        cardEl.style.transition = 'none';
+                        cardEl.style.transform = `translateX(${item.translateX}px) rotate(${item.rotate}deg)`;
+                        cardEl.style.opacity = item.opacity;
+                        cardEl.style.setProperty('--spotlight-progress', item.spotlightProgress);
+                        cardEl.style.setProperty('--stack-depth-opacity', item.stackDepthOpacity);
+                        cardEl.style.zIndex = item.zIndex;
+                    });
+                    
+                    // Hide unused card elements
+                    for (let i = visibleData.length; i < cardElements.length; i++) {
+                        cardElements[i].style.display = 'none';
+                    }
+                });
+            }
+
+            function settleCards() {
+                if (isSettling) return;
+
+                const targetIndex = Math.round(scrollProgress / settings.scrollAmountPerCard);
+                const targetProgress = targetIndex * settings.scrollAmountPerCard;
+                
+                if (Math.abs(scrollProgress - targetProgress) < 0.1) {
+                    scrollProgress = targetProgress;
+                    return;
+                }
+
+                isSettling = true;
+                const startTime = performance.now();
+                const startProgress = scrollProgress;
+                const duration = settings.settleDuration;
+
+                function easeInOutCubic(t) {
+                    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                }
+
+                function animateSettle(currentTime) {
+                    const elapsedTime = currentTime - startTime;
+                    const animationProgress = Math.min(elapsedTime / duration, 1);
+                    const easedProgress = easeInOutCubic(animationProgress);
+
+                    scrollProgress = lerp(startProgress, targetProgress, easedProgress);
+                    
+                    updateCardStyles();
+
+                    if (animationProgress < 1) {
+                        requestAnimationFrame(animateSettle);
+                    } else {
+                        isSettling = false;
+                        scrollProgress = targetProgress;
+                    }
+                }
+
+                requestAnimationFrame(animateSettle);
+            }
+            
+            function handleWheel(event) {
+                if (isSettling || isLoading) return;
+                clearTimeout(scrollEndTimer);
+
+                scrollProgress += event.deltaY;
+                const maxScroll = (allCardsData.length - 1) * settings.scrollAmountPerCard;
+                scrollProgress = Math.max(0, Math.min(scrollProgress, maxScroll));
+                
+                updateCardStyles();
+
+                // Check if we need to load more cards
+                const cardsFromEnd = allCardsData.length - (scrollProgress / settings.scrollAmountPerCard);
+                if (cardsFromEnd < settings.loadThreshold) {
+                    fetchMoreCards();
+                }
+
+                scrollEndTimer = setTimeout(settleCards, settings.settleTimeout);
+            }
+            
+            // Initial setup
+            generateInitialCards();
+            cardContainer.innerHTML = ''; // Clear hardcoded cards
+            updateCardStyles();
+
+
+            window.addEventListener('wheel', handleWheel);
+            window.addEventListener('resize', () => {
+                stackOffsets = [];
+                generateStackOffsets();
+                updateCardStyles();
+            });
+        });
+    </script>
+</body>
+</html> 

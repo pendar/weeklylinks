@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+  cards Card[]
+}
+
+model Card {
+  id             String   @id @default(cuid())
+  title          String
+  description    String
+  sourceName     String
+  sourceUrl      String
+  colorScheme    String   @default("light")
+  type           String
+  backgroundUrl  String?
+  backgroundBlur String?
+  categoryId     String
+  category       Category @relation(fields: [categoryId], references: [id])
+  status         String   @default("draft")
+  position       Int      @default(0)
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Submission {
+  id          String   @id @default(cuid())
+  url         String
+  description String
+  email       String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+}
+
+model QueuedItem {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  image     String?
+  notes     String?
+  status    String   @default("queued")
+  createdAt DateTime @default(now())
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  cardId    String
+  createdAt DateTime @default(now())
+  referer   String?
+  ua        String?
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+
+
