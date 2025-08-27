@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 const schema = z.object({ url: z.string().url(), description: z.string().min(5), email: z.string().email().optional() })
 
-export async function submitLink(_: unknown, formData: FormData) {
+export async function submitLink(formData: FormData) {
   try {
     const input = schema.parse({
       url: String(formData.get('url') || ''),
