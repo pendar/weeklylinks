@@ -28,17 +28,17 @@ export async function createCard(prevState: any, formData: FormData) {
       publishedAt: formData.get('publishedAt') ? new Date(String(formData.get('publishedAt'))) : new Date()
     })
     
-    // Handle background image URL and auto-determine type
+    // Handle image upload and auto-determine type
     let backgroundUrl: string | undefined
     let backgroundBlur: string | undefined
     let type = 'solid' // default type
     
-    const imageUrl = String(formData.get('backgroundUrl') || '').trim()
-    if (imageUrl) {
-      backgroundUrl = imageUrl
-      type = 'image' // auto-set to image when background URL is provided
-      // For now, we'll skip blur generation for URL-based images
-      backgroundBlur = undefined
+    const file = formData.get('image') as unknown as File | null
+    if (file && file.size > 0) {
+      const saved = await saveUploadToPublic(file)
+      backgroundUrl = saved.url
+      backgroundBlur = saved.blurDataUrl
+      type = 'image' // auto-set to image when background is uploaded
     }
     
     await prisma.card.create({ data: { ...input, type, colorScheme: 'light', backgroundUrl, backgroundBlur } })
@@ -71,20 +71,23 @@ export async function updateCard(formData: FormData) {
     const currentCard = await prisma.card.findUnique({ where: { id } })
     if (!currentCard) throw new Error('Card not found')
 
-    // Handle background image URL and auto-determine type
+    // Handle image upload and auto-determine type
     let backgroundUrl = currentCard.backgroundUrl
     let backgroundBlur = currentCard.backgroundBlur
     let type = currentCard.type
     
-    const imageUrl = String(formData.get('backgroundUrl') || '').trim()
-    if (imageUrl) {
-      // New image URL provided
-      backgroundUrl = imageUrl
+    const file = formData.get('image') as unknown as File | null
+    if (file && file.size > 0) {
+      // New image uploaded
+      const saved = await saveUploadToPublic(file)
+      backgroundUrl = saved.url
+      backgroundBlur = saved.blurDataUrl
       type = 'image'
-      // Keep existing blur or set to null for URL-based images
-      backgroundBlur = currentCard.backgroundBlur
+    } else if (backgroundUrl) {
+      // Keep existing image, ensure type is 'image'
+      type = 'image'
     } else {
-      // No image URL, set to solid
+      // No image, set to solid
       type = 'solid'
       backgroundUrl = null
       backgroundBlur = null

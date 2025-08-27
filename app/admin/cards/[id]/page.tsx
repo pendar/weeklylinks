@@ -36,15 +36,19 @@ export default async function EditCardPage({ params }: Params) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Background Image URL</label>
+            <label className="block text-sm font-medium mb-1">Background Image</label>
             <input 
-              name="backgroundUrl" 
-              type="url"
-              defaultValue={card.backgroundUrl || ''}
-              placeholder="Background Image URL (optional)"
+              name="image" 
+              type="file" 
+              accept="image/*" 
               className="rounded-md border px-3 py-2 w-full"
-              title="Enter a URL for background image (will automatically set card to image type)"
+              title="Upload a new background image (optional - will automatically set card to image type)"
             />
+            {card.backgroundUrl && (
+              <div className="mt-2 text-sm text-gray-600">
+                Current: <span className="font-mono text-xs">...{card.backgroundUrl.slice(-20)}</span>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Published At</label>
