@@ -1,8 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
-import { UploadButton } from '@uploadthing/react'
-import type { OurFileRouter } from '@/app/api/uploadthing/core'
 
 interface Category {
   id: string
@@ -46,9 +44,40 @@ function SubmitButton({ children }: { children: string }) {
 export function CardForm({ categories, card, onSubmit, submitButtonText, title }: Props) {
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null)
   const [imageUrl, setImageUrl] = useState<string>(card?.backgroundUrl || '')
+  const [uploading, setUploading] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
 
   const toLocal = (d?: Date | null) => d ? new Date(d).toISOString().slice(0,16) : ''
+
+  async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setMessage(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setImageUrl(result.url)
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Upload failed' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Upload failed' })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   async function handleSubmit(formData: FormData) {
     setMessage(null)
@@ -160,17 +189,18 @@ export function CardForm({ categories, card, onSubmit, submitButtonText, title }
                 </button>
               </div>
             ) : (
-              <UploadButton<OurFileRouter, "imageUploader">
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  if (res?.[0]?.url) {
-                    setImageUrl(res[0].url)
-                  }
-                }}
-                onUploadError={(error: Error) => {
-                  setMessage({ type: 'error', text: `Upload failed: ${error.message}` })
-                }}
-              />
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  className="w-full rounded-md border px-3 py-2 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-black file:text-white hover:file:bg-gray-800 disabled:opacity-50"
+                />
+                {uploading && (
+                  <div className="text-sm text-gray-600">Uploading...</div>
+                )}
+              </div>
             )}
           </div>
           <div>
