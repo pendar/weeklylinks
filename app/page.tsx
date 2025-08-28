@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 import { redirect } from 'next/navigation'
 import { getLatestWeekKey, toWeekKey } from '@/lib/weeks'
 import { prisma } from '@/lib/prisma'
@@ -14,6 +15,7 @@ export default async function Page() {
     
     if (latestCard?.publishedAt) {
       const latestWeek = toWeekKey(latestCard.publishedAt)
+      console.log('Redirecting to latest week:', latestWeek)
       redirect(`/w/${latestWeek}`)
     }
     
