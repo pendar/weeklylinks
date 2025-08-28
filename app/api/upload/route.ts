@@ -16,9 +16,10 @@ export async function POST(request: NextRequest) {
       type: file.type
     })
 
-    // Upload to Vercel Blob (token is automatically picked up from env)
+    // Upload to Vercel Blob with unique filename to prevent conflicts
     const blob = await put(file.name, file, {
       access: 'public',
+      addRandomSuffix: true,
     })
 
     console.log('Upload successful:', blob.url)

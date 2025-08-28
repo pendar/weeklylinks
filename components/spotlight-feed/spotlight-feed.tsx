@@ -176,7 +176,7 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         const descriptionSize = isMobile ? '14px' : '18px'
         
         inner.innerHTML = `
-          <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%);border-radius:20px;pointer-events:none;mix-blend-mode:multiply;"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);border-radius:20px;pointer-events:none;mix-blend-mode:multiply;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2;">
             <span style="backdrop-filter:blur(2px);border:1px solid #e6e3e1;border-radius:20px;padding:${categoryPadding};font-size:${categorySize};color:white;font-family:'Geist',sans-serif;font-weight:400;letter-spacing:-0.12px">${cards[i].category}</span>
           </div>
