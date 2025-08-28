@@ -242,8 +242,41 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       setProgressImmediate(progressRef.current + e.deltaY)
       settleTimer.current = window.setTimeout(() => startSettle(), settings.settleTimeoutMs)
     }
+    
+    // Touch events for mobile
+    let touchStartY = 0
+    let touchStartProgress = 0
+    
+    const onTouchStart = (e: TouchEvent) => {
+      if (settling) return
+      touchStartY = e.touches[0].clientY
+      touchStartProgress = progressRef.current
+    }
+    
+    const onTouchMove = (e: TouchEvent) => {
+      if (settling) return
+      e.preventDefault()
+      const touchY = e.touches[0].clientY
+      const deltaY = touchStartY - touchY
+      setProgressImmediate(touchStartProgress + deltaY)
+    }
+    
+    const onTouchEnd = () => {
+      if (settleTimer.current) window.clearTimeout(settleTimer.current)
+      settleTimer.current = window.setTimeout(() => startSettle(), settings.settleTimeoutMs)
+    }
+    
     window.addEventListener('wheel', onWheel, { passive: true })
-    return () => window.removeEventListener('wheel', onWheel)
+    window.addEventListener('touchstart', onTouchStart, { passive: false })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    
+    return () => {
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
   }, [settling])
 
   function startSettle() {

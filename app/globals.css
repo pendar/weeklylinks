@@ -21,10 +21,10 @@ body:not(:has(.admin-layout)) {
   overflow: hidden;
 }
 
-/* Allow scrolling on mobile devices */
+/* Allow scrolling on mobile devices but maintain horizontal card animation */
 @media screen and (max-width: 640px) {
   body:not(:has(.admin-layout)) {
-    overflow: auto;
+    overflow: hidden; /* Keep hidden to allow horizontal card scrolling */
     -webkit-overflow-scrolling: touch;
   }
 }
