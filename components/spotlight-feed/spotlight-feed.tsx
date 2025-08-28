@@ -30,10 +30,10 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       spotlightLeftVh: isMobile ? 8 : 19,
       stackMarginVh: isMobile ? 2 : 4,
       stackOffsetVh: isMobile ? 8 : 15,
-      settleTimeoutMs: 150,
+      settleTimeoutMs: isMobile ? 0 : 150, // No settling delay on mobile
       scrollPerCard: isMobile ? 300 : 400,
-      settleMs: 800,
-      virtualization: 5
+      settleMs: isMobile ? 0 : 800, // No settling animation on mobile
+      virtualization: isMobile ? 3 : 5 // Fewer virtualized cards on mobile for performance
     }
   }, [])
 
@@ -243,27 +243,29 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       settleTimer.current = window.setTimeout(() => startSettle(), settings.settleTimeoutMs)
     }
     
-    // Touch events for mobile
-    let touchStartY = 0
+    // Touch events for mobile - swipe left/right
+    let touchStartX = 0
     let touchStartProgress = 0
     
     const onTouchStart = (e: TouchEvent) => {
-      if (settling) return
-      touchStartY = e.touches[0].clientY
+      touchStartX = e.touches[0].clientX
       touchStartProgress = progressRef.current
     }
     
     const onTouchMove = (e: TouchEvent) => {
-      if (settling) return
       e.preventDefault()
-      const touchY = e.touches[0].clientY
-      const deltaY = touchStartY - touchY
-      setProgressImmediate(touchStartProgress + deltaY)
+      const touchX = e.touches[0].clientX
+      const deltaX = touchStartX - touchX
+      // Convert horizontal swipe to card progress (swipe right = next card, swipe left = previous card)
+      const cardProgress = deltaX / 100 // Adjust sensitivity
+      setProgressImmediate(touchStartProgress + cardProgress * settings.scrollPerCard)
     }
     
     const onTouchEnd = () => {
-      if (settleTimer.current) window.clearTimeout(settleTimer.current)
-      settleTimer.current = window.setTimeout(() => startSettle(), settings.settleTimeoutMs)
+      // On mobile, snap to nearest card without settling animation for fluid performance
+      const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
+      const target = targetIndex * settings.scrollPerCard
+      setProgressImmediate(target)
     }
     
     window.addEventListener('wheel', onWheel, { passive: true })
@@ -280,6 +282,14 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
   }, [settling])
 
   function startSettle() {
+    // Skip settling animation on mobile for better performance
+    if (settings.settleMs === 0) {
+      const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
+      const target = targetIndex * settings.scrollPerCard
+      setProgressImmediate(target)
+      return
+    }
+    
     setSettling(true)
     const start = progressRef.current
     const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
