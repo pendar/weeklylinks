@@ -247,24 +247,32 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       settleTimer.current = window.setTimeout(() => startSettle(), settings.settleTimeoutMs)
     }
     
-    // Touch events for mobile - swipe left/right
-    let touchStartX = 0
-    let touchStartProgress = 0
+    // Pointer events for mobile/tablet (better than touch on iOS)
+    let pointerActive = false
+    let startX = 0
+    let startProgress = 0
     let swipeRaf: number | null = null
     let pendingProgress: number | null = null
-    
-    const onTouchStart = (e: TouchEvent) => {
-      touchStartX = e.touches[0].clientX
-      touchStartProgress = progressRef.current
+
+    const el = containerRef.current
+    if (el) {
+      el.style.touchAction = 'pan-x'
+      ;(el.style as any).overscrollBehavior = 'none'
     }
-    
-    const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault()
-      const touchX = e.touches[0].clientX
-      const deltaX = touchStartX - touchX
-      // Convert horizontal swipe to card progress (swipe right = next card, swipe left = previous card)
-      const cardProgress = deltaX / 110 // slightly lower sensitivity for smoother feel
-      pendingProgress = touchStartProgress + cardProgress * settings.scrollPerCard
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return
+      pointerActive = true
+      startX = e.clientX
+      startProgress = progressRef.current
+      el?.setPointerCapture?.(e.pointerId)
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!pointerActive) return
+      const deltaX = startX - e.clientX
+      const cardProgress = deltaX / Math.max(120, window.innerWidth * 0.9) // normalize to viewport
+      pendingProgress = startProgress + cardProgress * settings.scrollPerCard
       if (swipeRaf == null) {
         swipeRaf = requestAnimationFrame(() => {
           if (pendingProgress != null) setProgressImmediate(pendingProgress)
@@ -273,24 +281,28 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         })
       }
     }
-    
-    const onTouchEnd = () => {
-      // On mobile, snap to nearest card without settling animation for fluid performance
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (!pointerActive) return
+      pointerActive = false
       const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
       const target = targetIndex * settings.scrollPerCard
       setProgressImmediate(target)
+      el?.releasePointerCapture?.(e.pointerId)
     }
-    
+
     window.addEventListener('wheel', onWheel, { passive: true })
-    window.addEventListener('touchstart', onTouchStart, { passive: false })
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
-    window.addEventListener('touchend', onTouchEnd, { passive: true })
-    
+    el?.addEventListener('pointerdown', onPointerDown, { passive: true })
+    el?.addEventListener('pointermove', onPointerMove, { passive: true })
+    el?.addEventListener('pointerup', onPointerUp, { passive: true })
+    el?.addEventListener('pointercancel', onPointerUp, { passive: true })
+
     return () => {
       window.removeEventListener('wheel', onWheel)
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
-      window.removeEventListener('touchend', onTouchEnd)
+      el?.removeEventListener('pointerdown', onPointerDown)
+      el?.removeEventListener('pointermove', onPointerMove)
+      el?.removeEventListener('pointerup', onPointerUp)
+      el?.removeEventListener('pointercancel', onPointerUp)
     }
   }, [settling])
 
