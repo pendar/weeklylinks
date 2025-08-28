@@ -25,15 +25,16 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
   const settings = useMemo(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
     return {
-      cardHeightVh: isMobile ? 65 : 70, // Smaller on mobile to avoid footer
+      cardHeightVh: isMobile ? 68 : 70,
       cardAspectRatio: 0.53,
       spotlightLeftVh: isMobile ? 8 : 19,
       stackMarginVh: isMobile ? 2 : 4,
       stackOffsetVh: isMobile ? 8 : 15,
+      spotlightTopOffsetVh: isMobile ? 6 : 0, // lift cards a bit on mobile so footer stays visible
       settleTimeoutMs: isMobile ? 0 : 150, // No settling delay on mobile
-      scrollPerCard: isMobile ? 200 : 400, // Faster scrolling on mobile
+      scrollPerCard: isMobile ? 300 : 400,
       settleMs: isMobile ? 0 : 800, // No settling animation on mobile
-      virtualization: isMobile ? 2 : 5 // Even fewer virtualized cards on mobile for max performance
+      virtualization: isMobile ? 3 : 5 // Fewer virtualized cards on mobile for performance
     }
   }, [])
 
@@ -78,14 +79,11 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
 
   function render() {
     if (!containerRef.current) return
-    
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
     const total = progressRef.current / settings.scrollPerCard
     const current = Math.floor(total)
     const t = total - current
-    
-    // On mobile, skip interpolation for maximum performance
-    const positions = isMobile ? targetPositions(Math.round(total)) : targetPositions(current)
+    const start = targetPositions(current)
+    const end = targetPositions(current + 1)
     const spotlightIndex = Math.round(total)
 
     const startIndex = Math.max(0, current - settings.virtualization)
@@ -95,8 +93,8 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
 
     let k = 0
     for (let i = startIndex; i <= endIndex; i++) {
-      const pos = positions[i]
-      if (!pos) continue
+      const s = start[i]; const e = end[i]
+      if (!s || !e) continue
       let el = children[k] as HTMLElement
       if (!el) {
         el = document.createElement('div')
@@ -104,7 +102,10 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         el.style.position = 'absolute'
         el.style.height = `calc(${settings.cardHeightVh}vh)`
         el.style.width = `calc(${settings.cardHeightVh}vh * ${settings.cardAspectRatio})`
-        el.style.top = `calc((100vh - ${settings.cardHeightVh}vh) / 2)`
+        // Compute top in px to allow an upward offset on mobile
+        const baseTopVh = (100 - settings.cardHeightVh) / 2
+        const topVh = Math.max(0, baseTopVh - settings.spotlightTopOffsetVh)
+        el.style.top = `${vh(topVh)}px`
         el.style.borderRadius = '20px'
         el.style.willChange = 'transform, opacity'
         el.style.background = 'white'
@@ -116,74 +117,47 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         containerRef.current!.appendChild(el)
       }
       el.style.display = ''
-      
-      // On mobile, use direct positions for maximum performance
-      if (isMobile) {
-        el.style.transform = `translateX(${pos.x}px) rotate(${pos.rot}deg)`
-        el.style.opacity = String(pos.opacity)
-        el.style.zIndex = String(pos.z)
-        el.style.setProperty('--spotlight-progress', String(pos.spot))
-        el.style.setProperty('--stack-depth-opacity', String(pos.stackOpacity))
+      const x = lerp(s.x, e.x, t)
+      const rot = lerp(s.rot, e.rot, t)
+      // Fade-in for newly inserted right-most card: when moving to a new spotlight,
+      // the last stack card appears; approximate by easing opacity for large x values.
+      let op = lerp(s.opacity, e.opacity, t)
+      const farRightThreshold = window.innerWidth * 0.95
+      if (s.x > farRightThreshold || e.x > farRightThreshold) {
+        const dist = Math.min(1, Math.max(0, (Math.max(s.x, e.x) - farRightThreshold) / (window.innerWidth * 0.2)))
+        op = Math.max(op, 0.2 + (1 - dist) * 0.8)
+      }
+      const spot = lerp(s.spot, e.spot, t)
+      const stackOp = lerp(s.stackOpacity, e.stackOpacity, t)
+      el.style.transform = `translateX(${x}px) rotate(${rot}deg)`
+      el.style.opacity = String(op)
+      // Z layering:
+      // - Spotlighted card (nearest to snap) must always be highest z.
+      // - Stack to the right: left-most (nearest to spotlight) is above deeper ones.
+      let z: number
+      if (i === spotlightIndex) {
+        z = cards.length + 10000
+      } else if (i > spotlightIndex) {
+        const stackIndex = i - (spotlightIndex + 1) // 0 for left-most in stack
+        z = cards.length - stackIndex
       } else {
-        // Desktop: use interpolation for smooth animation
-        const s = targetPositions(current)[i]
-        const e = targetPositions(current + 1)[i]
-        if (s && e) {
-          const x = lerp(s.x, e.x, t)
-          const rot = lerp(s.rot, e.rot, t)
-          let op = lerp(s.opacity, e.opacity, t)
-          const farRightThreshold = window.innerWidth * 0.95
-          if (s.x > farRightThreshold || e.x > farRightThreshold) {
-            const dist = Math.min(1, Math.max(0, (Math.max(s.x, e.x) - farRightThreshold) / (window.innerWidth * 0.2)))
-            op = Math.max(op, 0.2 + (1 - dist) * 0.8)
-          }
-          const spot = lerp(s.spot, e.spot, t)
-          const stackOp = lerp(s.stackOpacity, e.stackOpacity, t)
-          el.style.transform = `translateX(${x}px) rotate(${rot}deg)`
-          el.style.opacity = String(op)
-          // Z layering:
-          // - Spotlighted card (nearest to snap) must always be highest z.
-          // - Stack to the right: left-most (nearest to spotlight) is above deeper ones.
-          let z: number
-          if (i === spotlightIndex) {
-            z = cards.length + 10000
-          } else if (i > spotlightIndex) {
-            const stackIndex = i - (spotlightIndex + 1) // 0 for left-most in stack
-            z = cards.length - stackIndex
-          } else {
-            // Cards to the left (already gone) sit below everything
-            z = 0
-          }
-          el.style.zIndex = String(z)
-          // Smooth cross-fade by driving CSS variables used by ::before/::after
-          el.style.setProperty('--spotlight-progress', String(spot))
-          el.style.setProperty('--stack-depth-opacity', String(stackOp))
-          
-          // Set inner opacity for desktop
-          const inner = el.querySelector('.inner') as HTMLElement
-          inner.style.position = 'absolute'
-          inner.style.inset = '0'
-          inner.style.padding = '24px'
-          inner.style.display = 'flex'
-          inner.style.flexDirection = 'column'
-          inner.style.justifyContent = 'space-between'
-          inner.style.color = '#111'
-          inner.style.opacity = String(stackOp)
-        }
+        // Cards to the left (already gone) sit below everything
+        z = 0
       }
-      
-      // Set inner styles for mobile (outside the desktop conditional)
-      if (isMobile) {
-        const inner = el.querySelector('.inner') as HTMLElement
-        inner.style.position = 'absolute'
-        inner.style.inset = '0'
-        inner.style.padding = '16px'
-        inner.style.display = 'flex'
-        inner.style.flexDirection = 'column'
-        inner.style.justifyContent = 'space-between'
-        inner.style.color = '#111'
-        inner.style.opacity = String(pos.stackOpacity)
-      }
+      el.style.zIndex = String(z)
+      // Smooth cross-fade by driving CSS variables used by ::before/::after
+      el.style.setProperty('--spotlight-progress', String(spot))
+      el.style.setProperty('--stack-depth-opacity', String(stackOp))
+      const inner = el.querySelector('.inner') as HTMLElement
+      inner.style.position = 'absolute'
+      inner.style.inset = '0'
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
+      inner.style.padding = isMobile ? '16px' : '24px'
+      inner.style.display = 'flex'
+      inner.style.flexDirection = 'column'
+      inner.style.justifyContent = 'space-between'
+      inner.style.color = '#111'
+      inner.style.opacity = String(stackOp)
       
       // Check if this is an image card by presence of background image
       const hasBackground = Boolean(cards[i].backgroundUrl)
@@ -205,7 +179,6 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         const titleSize = isMobile ? '28px' : '40px'
         const descriptionSize = isMobile ? '14px' : '18px'
         
-        const inner = el.querySelector('.inner') as HTMLElement
         inner.innerHTML = `
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);border-radius:20px;pointer-events:none;mix-blend-mode:multiply;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2;">
@@ -232,7 +205,6 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         const titleSize = isMobile ? '28px' : '40px'
         const descriptionSize = isMobile ? '14px' : '18px'
         
-        const inner = el.querySelector('.inner') as HTMLElement
         inner.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between;position:relative;">
             <span style="border:1px solid #d4d0cd;border-radius:20px;padding:${categoryPadding};font-size:${categorySize};color:#a09892;font-family:'Geist',sans-serif;font-weight:400;letter-spacing:-0.12px">${cards[i].category}</span>
@@ -278,6 +250,8 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
     // Touch events for mobile - swipe left/right
     let touchStartX = 0
     let touchStartProgress = 0
+    let swipeRaf: number | null = null
+    let pendingProgress: number | null = null
     
     const onTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX
@@ -288,15 +262,16 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       e.preventDefault()
       const touchX = e.touches[0].clientX
       const deltaX = touchStartX - touchX
-      // Convert horizontal swipe to card progress with optimized sensitivity
-      const cardProgress = deltaX / 80 // Increased sensitivity for smoother movement
-      const newProgress = touchStartProgress + cardProgress * settings.scrollPerCard
-      
-      // Use requestAnimationFrame for smooth 60fps updates
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      rafRef.current = requestAnimationFrame(() => {
-        setProgressImmediate(newProgress)
-      })
+      // Convert horizontal swipe to card progress (swipe right = next card, swipe left = previous card)
+      const cardProgress = deltaX / 110 // slightly lower sensitivity for smoother feel
+      pendingProgress = touchStartProgress + cardProgress * settings.scrollPerCard
+      if (swipeRaf == null) {
+        swipeRaf = requestAnimationFrame(() => {
+          if (pendingProgress != null) setProgressImmediate(pendingProgress)
+          pendingProgress = null
+          swipeRaf = null
+        })
+      }
     }
     
     const onTouchEnd = () => {
