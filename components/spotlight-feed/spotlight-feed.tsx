@@ -44,6 +44,8 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
     return { h, w: h * settings.cardAspectRatio }
   }
   const stackOffsetsRef = useRef<number[]>([])
+  const carouselIndexRef = useRef(0) // mobile-only active index
+  const dragPxRef = useRef(0) // mobile-only drag offset in px
   function ensureOffsets() {
     const base = vh(settings.stackOffsetVh)
     const arr = stackOffsetsRef.current
@@ -79,6 +81,104 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
 
   function render() {
     if (!containerRef.current) return
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
+    // Mobile: simple carousel – position only prev/current/next with drag offset
+    if (isMobile) {
+      const { w } = dims()
+      const spotlightLeft = vh(settings.spotlightLeftVh)
+      const gap = w + vh(settings.stackMarginVh)
+      const idx = carouselIndexRef.current
+      const startIndex = Math.max(0, idx - 1)
+      const endIndex = Math.min(cards.length - 1, idx + 1)
+      const children = containerRef.current.children as unknown as HTMLElement[]
+      let k = 0
+      for (let i = startIndex; i <= endIndex; i++) {
+        let el = children[k] as HTMLElement
+        if (!el) {
+          el = document.createElement('div')
+          el.className = 'card-el'
+          el.style.position = 'absolute'
+          el.style.height = `calc(${settings.cardHeightVh}vh)`
+          el.style.width = `calc(${settings.cardHeightVh}vh * ${settings.cardAspectRatio})`
+          const baseTopVh = (100 - settings.cardHeightVh) / 2
+          const topVh = Math.max(0, baseTopVh - settings.spotlightTopOffsetVh)
+          el.style.top = `${vh(topVh)}px`
+          el.style.borderRadius = '20px'
+          el.style.willChange = 'transform, opacity'
+          el.style.background = 'white'
+          el.style.boxShadow = 'var(--stacked-shadow)'
+          el.style.cursor = 'pointer'
+          const inner = document.createElement('div')
+          inner.className = 'inner'
+          el.appendChild(inner)
+          containerRef.current!.appendChild(el)
+        }
+        el.style.display = ''
+        const offsetFromCenter = i - idx
+        const x = spotlightLeft + offsetFromCenter * gap - dragPxRef.current
+        el.style.transform = `translateX(${x}px)`
+        el.style.opacity = '1'
+        el.style.zIndex = String(i === idx ? cards.length + 10000 : cards.length - Math.abs(offsetFromCenter))
+        el.style.setProperty('--spotlight-progress', String(i === idx ? 1 : 0))
+        el.style.setProperty('--stack-depth-opacity', String(i === idx ? 1 : 0.6))
+        // Build inner as before
+        const inner = el.querySelector('.inner') as HTMLElement
+        inner.style.position = 'absolute'
+        inner.style.inset = '0'
+        inner.style.padding = '16px'
+        inner.style.display = 'flex'
+        inner.style.flexDirection = 'column'
+        inner.style.justifyContent = 'space-between'
+        inner.style.color = '#111'
+        const hasBackground = Boolean(cards[i].backgroundUrl)
+        const categorySize = '10px'
+        const categoryPadding = '8px'
+        const sourceSize = '10px'
+        const titleSize = '28px'
+        const descriptionSize = '14px'
+        if (hasBackground) {
+          el.setAttribute('data-card-type', 'image')
+          el.style.backgroundImage = `url('${cards[i].backgroundUrl}')`
+          el.style.backgroundSize = 'cover'
+          el.style.backgroundPosition = 'center'
+          el.style.backgroundRepeat = 'no-repeat'
+          inner.innerHTML = `
+            <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);border-radius:20px;pointer-events:none;mix-blend-mode:multiply;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2;">
+              <span style="backdrop-filter:blur(2px);border:1px solid #e6e3e1;border-radius:20px;padding:${categoryPadding};font-size:${categorySize};color:white;font-family:'Geist',sans-serif;font-weight:400;letter-spacing:-0.12px">${cards[i].category}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;position:relative;z-index:2;">
+              <div style="font-size:${sourceSize};color:white;font-family:'Geist Mono',monospace;font-weight:400">${cards[i].sourceName}</div>
+              <div style="font-size:${titleSize};color:white;font-family:'Geist',sans-serif;font-weight:500;line-height:1.1;text-shadow:rgba(0,0,0,0.25) 0px 1px 1px">${cards[i].title}</div>
+              <div style="font-size:${descriptionSize};color:rgba(255,255,255,0.5);font-family:'Geist',sans-serif;font-weight:400;line-height:1.5;letter-spacing:-0.18px">${cards[i].description}</div>
+            </div>`
+        } else {
+          el.removeAttribute('data-card-type')
+          el.style.backgroundImage = ''
+          el.style.backgroundSize = ''
+          el.style.backgroundPosition = ''
+          el.style.backgroundRepeat = ''
+          inner.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;position:relative;">
+              <span style="border:1px solid #d4d0cd;border-radius:20px;padding:${categoryPadding};font-size:${categorySize};color:#a09892;font-family:'Geist',sans-serif;font-weight:400;letter-spacing:-0.12px">${cards[i].category}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:${sourceSize};color:#716964;font-family:'Geist Mono',monospace;font-weight:400">${cards[i].sourceName}</div>
+              <div style="font-size:${titleSize};color:#000000;font-family:'Geist',sans-serif;font-weight:500;line-height:1.1">${cards[i].title}</div>
+              <div style="font-size:${descriptionSize};color:#888079;font-family:'Geist',sans-serif;font-weight:400;line-height:1.5;letter-spacing:-0.18px">${cards[i].description}</div>
+            </div>`
+        }
+        el.onclick = () => window.open(cards[i].sourceUrl, '_blank', 'noopener,noreferrer')
+        k++
+      }
+      for (let j = k; j < (containerRef.current.children.length || 0); j++) {
+        const el = containerRef.current.children[j] as HTMLElement
+        if (el) el.style.display = 'none'
+      }
+      return
+    }
+
+    // Desktop path (original interpolation)
     const total = progressRef.current / settings.scrollPerCard
     const current = Math.floor(total)
     const t = total - current
@@ -288,49 +388,24 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       lastTs = now
 
       const deltaX = startX - e.clientX
-      const cardProgress = deltaX / Math.max(180, window.innerWidth * 0.95) // normalize to viewport
-      pendingProgress = startProgress + cardProgress * settings.scrollPerCard
-      if (swipeRaf == null) {
-        swipeRaf = requestAnimationFrame(() => {
-          if (pendingProgress != null) setProgressImmediate(pendingProgress)
-          pendingProgress = null
-          swipeRaf = null
-        })
-      }
+      // Carousel drag on mobile: just move cards visually using dragPxRef; don't touch desktop progress
+      dragPxRef.current = deltaX
+      render()
     }
 
     const onPointerUp = (e: PointerEvent) => {
       if (!pointerActive) return
       pointerActive = false
-      // Inertia: keep moving with decaying velocity, then snap
-      const norm = Math.max(180, window.innerWidth * 0.95)
-      const progressPerPx = settings.scrollPerCard / norm
-      const minVel = 0.02 // px/ms threshold to trigger fling
-      if (Math.abs(velocityPxPerMs) > minVel) {
-        let v = -velocityPxPerMs // invert so swipe-right advances
-        let prevTs = performance.now()
-        const friction = 0.96
-        const animate = () => {
-          const now = performance.now()
-          const dt = now - prevTs
-          prevTs = now
-          const deltaProgress = v * dt * progressPerPx
-          setProgressImmediate(progressRef.current + deltaProgress)
-          v *= friction
-          if (Math.abs(v) > 0.001) {
-            rafRef.current = requestAnimationFrame(animate)
-          } else {
-            const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
-            const target = targetIndex * settings.scrollPerCard
-            setProgressImmediate(target)
-          }
-        }
-        rafRef.current = requestAnimationFrame(animate)
-      } else {
-        const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
-        const target = targetIndex * settings.scrollPerCard
-        setProgressImmediate(target)
+      // Carousel snap on mobile: advance index by distance/velocity, reset drag and re-render
+      const w = dims().w
+      let delta = dragPxRef.current
+      // fling if velocity is significant
+      const fling = Math.abs(velocityPxPerMs) > 0.05 ? Math.sign(-velocityPxPerMs) : 0
+      if (Math.abs(delta) > w * 0.25 || fling !== 0) {
+        carouselIndexRef.current = Math.max(0, Math.min(cards.length - 1, carouselIndexRef.current + (delta > 0 || fling > 0 ? 1 : -1)))
       }
+      dragPxRef.current = 0
+      render()
       el?.releasePointerCapture?.(e.pointerId)
     }
 
