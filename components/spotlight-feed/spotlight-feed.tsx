@@ -205,6 +205,7 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         const titleSize = isMobile ? '28px' : '40px'
         const descriptionSize = isMobile ? '14px' : '18px'
         
+        const inner = el.querySelector('.inner') as HTMLElement
         inner.innerHTML = `
           <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);border-radius:20px;pointer-events:none;mix-blend-mode:multiply;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2;">
@@ -231,6 +232,7 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
         const titleSize = isMobile ? '28px' : '40px'
         const descriptionSize = isMobile ? '14px' : '18px'
         
+        const inner = el.querySelector('.inner') as HTMLElement
         inner.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between;position:relative;">
             <span style="border:1px solid #d4d0cd;border-radius:20px;padding:${categoryPadding};font-size:${categorySize};color:#a09892;font-family:'Geist',sans-serif;font-weight:400;letter-spacing:-0.12px">${cards[i].category}</span>
