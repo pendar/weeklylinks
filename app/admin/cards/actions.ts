@@ -86,21 +86,30 @@ export async function updateCard(formData: FormData) {
     let backgroundBlur = currentCard.backgroundBlur
     let type = currentCard.type
     
-    const file = formData.get('image') as unknown as File | null
-    if (file && file.size > 0) {
-      // New image uploaded
-      const saved = await saveUploadToPublic(file)
-      backgroundUrl = saved.url
-      backgroundBlur = saved.blurDataUrl
+    // Check for new image upload from Vercel Blob
+    const uploadedUrl = formData.get('backgroundUrl') as string
+    if (uploadedUrl) {
+      backgroundUrl = uploadedUrl
       type = 'image'
-    } else if (backgroundUrl) {
-      // Keep existing image, ensure type is 'image'
-      type = 'image'
+      // Generate blur placeholder from URL if needed
+      backgroundBlur = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='
     } else {
-      // No image, set to solid
-      type = 'solid'
-      backgroundUrl = null
-      backgroundBlur = null
+      // Fallback to file upload (for local development)
+      const file = formData.get('image') as unknown as File | null
+      if (file && file.size > 0) {
+        const saved = await saveUploadToPublic(file)
+        backgroundUrl = saved.url
+        backgroundBlur = saved.blurDataUrl
+        type = 'image'
+      } else if (backgroundUrl) {
+        // Keep existing image, ensure type is 'image'
+        type = 'image'
+      } else {
+        // No image, set to solid
+        type = 'solid'
+        backgroundUrl = null
+        backgroundBlur = null
+      }
     }
 
     await prisma.card.update({ 
@@ -110,7 +119,12 @@ export async function updateCard(formData: FormData) {
     revalidatePath('/admin/cards')
     return { success: true }
   } catch (e) {
-    return { error: 'Unable to update card' }
+    console.error('Update card error:', e)
+    if (e instanceof z.ZodError) {
+      const errors = e.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
+      return { error: `Validation failed: ${errors}` }
+    }
+    return { error: 'Unable to update card. Please check your input and try again.' }
   }
 }
 
