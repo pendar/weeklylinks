@@ -253,6 +253,11 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
     let startProgress = 0
     let swipeRaf: number | null = null
     let pendingProgress: number | null = null
+    // Velocity sampling for inertia
+    let lastX = 0
+    let lastTs = 0
+    let velocityPxPerMs = 0
+    const velocitySmoothing = 0.2 // EMA factor
 
     const el = containerRef.current
     if (el) {
@@ -265,13 +270,25 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
       pointerActive = true
       startX = e.clientX
       startProgress = progressRef.current
+      lastX = e.clientX
+      lastTs = performance.now()
+      velocityPxPerMs = 0
       el?.setPointerCapture?.(e.pointerId)
     }
 
     const onPointerMove = (e: PointerEvent) => {
       if (!pointerActive) return
+      const now = performance.now()
+      const dx = e.clientX - lastX
+      const dt = Math.max(1, now - lastTs)
+      const instVel = dx / dt // px per ms
+      // Exponential moving average for stable velocity
+      velocityPxPerMs = velocityPxPerMs * (1 - velocitySmoothing) + instVel * velocitySmoothing
+      lastX = e.clientX
+      lastTs = now
+
       const deltaX = startX - e.clientX
-      const cardProgress = deltaX / Math.max(120, window.innerWidth * 0.9) // normalize to viewport
+      const cardProgress = deltaX / Math.max(180, window.innerWidth * 0.95) // normalize to viewport
       pendingProgress = startProgress + cardProgress * settings.scrollPerCard
       if (swipeRaf == null) {
         swipeRaf = requestAnimationFrame(() => {
@@ -285,9 +302,35 @@ export function SpotlightFeed({ cards }: SpotlightFeedProps) {
     const onPointerUp = (e: PointerEvent) => {
       if (!pointerActive) return
       pointerActive = false
-      const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
-      const target = targetIndex * settings.scrollPerCard
-      setProgressImmediate(target)
+      // Inertia: keep moving with decaying velocity, then snap
+      const norm = Math.max(180, window.innerWidth * 0.95)
+      const progressPerPx = settings.scrollPerCard / norm
+      const minVel = 0.02 // px/ms threshold to trigger fling
+      if (Math.abs(velocityPxPerMs) > minVel) {
+        let v = -velocityPxPerMs // invert so swipe-right advances
+        let prevTs = performance.now()
+        const friction = 0.96
+        const animate = () => {
+          const now = performance.now()
+          const dt = now - prevTs
+          prevTs = now
+          const deltaProgress = v * dt * progressPerPx
+          setProgressImmediate(progressRef.current + deltaProgress)
+          v *= friction
+          if (Math.abs(v) > 0.001) {
+            rafRef.current = requestAnimationFrame(animate)
+          } else {
+            const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
+            const target = targetIndex * settings.scrollPerCard
+            setProgressImmediate(target)
+          }
+        }
+        rafRef.current = requestAnimationFrame(animate)
+      } else {
+        const targetIndex = Math.round(progressRef.current / settings.scrollPerCard)
+        const target = targetIndex * settings.scrollPerCard
+        setProgressImmediate(target)
+      }
       el?.releasePointerCapture?.(e.pointerId)
     }
 
