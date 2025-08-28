@@ -3,29 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if we have the blob token
-    const token = process.env.BLOB_READ_WRITE_TOKEN
-    
-    console.log('Environment check:', {
-      hasToken: !!token,
-      tokenLength: token?.length || 0,
-      allEnvKeys: Object.keys(process.env).filter(key => key.includes('BLOB'))
-    })
-    
-    if (!token) {
-      const debugInfo = {
-        hasToken: !!token,
-        tokenLength: token?.length || 0,
-        allEnvKeys: Object.keys(process.env).filter(key => key.includes('BLOB')),
-        totalEnvKeys: Object.keys(process.env).length
-      }
-      
-      console.error('BLOB_READ_WRITE_TOKEN environment variable not found', debugInfo)
-      return NextResponse.json({ 
-        error: 'Blob storage not configured. Debug info: ' + JSON.stringify(debugInfo)
-      }, { status: 500 })
-    }
-
     const formData = await request.formData()
     const file = formData.get('file') as File
     
@@ -33,20 +10,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Upload to Vercel Blob with explicit token
+    console.log('Uploading file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
+
+    // Upload to Vercel Blob (token is automatically picked up from env)
     const blob = await put(file.name, file, {
       access: 'public',
-      token: token,
     })
+
+    console.log('Upload successful:', blob.url)
 
     return NextResponse.json({ 
       url: blob.url,
       success: true 
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    console.error('Upload error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    
     return NextResponse.json(
-      { error: 'Upload failed' }, 
+      { 
+        error: 'Upload failed: ' + error.message,
+        details: error.name 
+      }, 
       { status: 500 }
     )
   }
