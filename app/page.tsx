@@ -5,20 +5,18 @@ import { getLatestWeekKey } from '@/lib/weeks'
 
 export default async function Page() {
   try {
-    // First try to get the latest week from DB
-    const dbLatest = await getLatestWeekKeyFromDb()
-    if (dbLatest) {
-      redirect(`/w/${dbLatest}`)
-    }
-    
-    // Fallback: get available weeks and redirect to the first one
+    // Get available weeks (sorted by newest first)
     const weeks = await getAvailableWeeks(1)
+    console.log('Homepage redirect - available weeks:', weeks)
+    
     if (weeks.length > 0) {
+      console.log('Redirecting to most recent week with cards:', `/w/${weeks[0]}`)
       redirect(`/w/${weeks[0]}`)
     }
     
-    // Last resort: redirect to current week
+    // Fallback: redirect to current week if no cards exist
     const currentWeek = await getLatestWeekKey()
+    console.log('No cards found, redirecting to current week:', `/w/${currentWeek}`)
     redirect(`/w/${currentWeek}`)
   } catch (error) {
     console.error('Error in homepage redirect:', error)
