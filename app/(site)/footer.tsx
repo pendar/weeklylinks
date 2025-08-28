@@ -2,7 +2,7 @@ export function SiteFooter() {
   return (
     <footer className="pointer-events-auto fixed inset-x-0 bottom-0 flex items-center justify-between px-4 sm:px-8 py-3 sm:py-5 text-xs sm:text-sm">
       <div className="text-gray-600 text-xs sm:text-sm">
-        Curated by Pendar Yousefi
+        Curated by Pendar &amp; friends
       </div>
       <div className="flex gap-3 sm:gap-4 items-center">
         <a 
